@@ -39,4 +39,5 @@ diba_def <- diba |>
   bind_rows(diba_nocoords2)
 
 
-
+# export
+write_csv(diba_def, "output/cens_activitat_comercial_diba_clean.csv")
