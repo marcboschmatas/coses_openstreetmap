@@ -41,3 +41,10 @@ diba_def <- diba |>
 
 # export
 write_csv(diba_def, "output/cens_activitat_comercial_diba_clean.csv")
+
+# zip
+zip("output/cens_activitat_comercial_diba_clean.zip",
+    "output/cens_activitat_comercial_diba_clean.csv")
+
+# remove original
+file.remove("output/cens_activitat_comercial_diba_clean.csv")
