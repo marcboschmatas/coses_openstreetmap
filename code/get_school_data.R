@@ -3,14 +3,15 @@ library(httr)
 library(jsonlite)
 library(osmdata)
 library(sf)
+library(rvest)
 
 
 
-# download schools in Palafrugell missing the isced:level keys
+# download schools in Palafrugell 
 
 
 escoles <- opq("Palafrugell") |> 
-  add_osm_features("[\"amenity\"=\"school\"][\"isced_level\"!~\".*\"][\"ref\"]") |> # this is a lot more cumbersome but allows to filter for missing tags
+  add_osm_features("[\"amenity\"=\"school\"][\"ref\"]") |> # this is a lot more cumbersome but allows to filter for missing tags
   osmdata_sf()
 
 escoles_punts <- escoles$osm_points
@@ -36,44 +37,83 @@ escoles_gene <- GET(paste0(baseurl,query)) |>
   content(as = "text") |> 
   fromJSON()
 
-# here any other variable that we need may be added. EG operator and operator:type
+# clean all easy variables
 
-escoles_gene_titularitat <- escoles_gene |> 
-  select(codi_centre, nom_naturalesa, nom_titularitat) |> 
-  rename("operator_2" = "nom_titularitat") |> # need to change the name because some schools already have an operator defined - need to check manually whether to change it or not
-  mutate("operator:type" = ifelse(nom_naturalesa == "Públic", "public", "private")) |> 
-  select(-nom_naturalesa)
+escoles_gene_osm <- escoles_gene |> 
+  select(-c(curs, codi_titularitat, codi_naturalesa, 
+            codi_delegaci, nom_delegaci, codi_comarca,
+            codi_municipi, codi_municipi_6, 
+            codi_localitat, codi_districte_municipal, 
+            nom_comarca, zona_educativa,
+            coordenades_utm_x, coordenades_utm_y,
+            coordenades_geo_x, coordenades_geo_y)) |> # eliminar columnes que no calen
+  rename("operator" = "nom_titularitat",
+         "name" = "denominaci_completa",
+         "ref" = "codi_centre",
+         "contact:phone" = "tel_fon",
+         "contact:fax" = "fax",
+         "contact:email" = "e_mail_centre",
+         "website" = "url",
+         "addr:city" = "nom_municipi",
+         "addr:place" = "nom_localitat",
+         "addr:postcode" = "codi_postal",
+         "source:date" = "any") |> # canviar noms de columnes que podem adaptar "tal qual"
+  mutate("contact:fax" = paste0("+34",`contact:fax`),
+         "contact:phone" = paste0("+34", `contact:phone`),
+         "addr:street" = str_extract(adre_a, "^[^\\,]+"),
+         "addr:housenumber" = str_extract(adre_a, "[^\\, ]+$"),
+         "operator:type" = ifelse(nom_naturalesa == "Públic", "public", "private"))
 
-# add these two columns to the osm objects
-# I only create a table w/o geometry because I'm assuming this will be used for manual input - will change it later on to make an importation possible
 
-escoles_osm <- bind_rows(st_drop_geometry(escoles_mpol), st_drop_geometry(escoles_pol)) |>  # we do not add points because those are parts of other objects
-  left_join(escoles_gene_titularitat, by = c("ref" = "codi_centre"))
+# get table of isced levels min and max age
+
+eqs <- "https://wiki.openstreetmap.org/wiki/Import_schools_in_Catalunya" |> 
+  read_html() |> 
+  html_nodes(xpath = '/html/body/div[3]/div[3]/div[5]/div[1]/table[2]') |> 
+  html_table()
+eqs <- eqs[[1]] |> 
+  mutate(Cycle = str_split(Cycle, ", ")) |> 
+  unnest(cols = Cycle) |> 
+  mutate(Cycle = str_to_lower(Cycle))
 
 
-
-
-# transform registers to ISCED level
-
+# generate the more difficult columns
 
 escoles_gene_isced <- escoles_gene |> 
-  select(codi_centre, "epri", "einf1c", "eso", "batx", "cfpm", "aa03", "cfps", "pfi") |> 
+  select("codi_centre", "epri", "einf1c", "einf2c", "eso", "batx", "cfpm", "aa03", "cfps", "pfi") |> 
   pivot_longer(-codi_centre,
                names_to = "level_name",
                values_to = "junk") |> 
   filter(!is.na(junk)) |> 
   select(-junk) |> 
-  mutate(`isced:level` = case_when(level_name == "epri" ~ 1,
-                                 level_name == "einf1c" ~ 0,
-                                 level_name == "einf2c" ~ 0,
-                                 level_name == "eso" ~ 3,
-                                 level_name == "batx" ~ 3,
-                                 level_name == "cfpm" ~ 3,
-                                 level_name == "cfps" ~ 5,
-                                 level_name == "aa03" ~ 4,
-                                 level_name == "pfi" ~ 2,
-                                 TRUE ~ as.numeric(NA))) |> # very much work in progress - need to put every single level
+  left_join(eqs, by = c("level_name" = "Cycle")) |> 
+  mutate("school" = case_when(level_name %in% c("einf1c", "einf2c") ~ NA_character_,
+                              level_name == "epri" ~ "primary",
+                              level_name %in% c("eso", "batx") ~ "secondary",
+                              level_name %in% c("aa01", "cfpm", "ppas", 
+                                                "aa03", "cfps", "pfi", "pa01",
+                                                "cfam", "pa02", "cfas",
+                                                "esdi", "adr", "crbc",
+                                                "dans", "musp", "muss",
+                                                "tegm", "tegs") ~ "professional",
+                              level_name == "ee" ~ "special_education_needs",
+                              TRUE ~ NA_character_),
+         "amenity" = case_when(level_name %in% c("einf1c", "einf2c") ~ "kindergarten",
+                               level_name == "muse" ~ "music_school",
+                               level_name == "dane" ~ NA_character_,
+                               level_name == "idi" ~ "language_school",
+                               TRUE ~ "school")) |> 
+  arrange(`ISCED level`) |> 
   group_by(codi_centre) |> 
-  arrange(`isced:level`) |> 
-  distinct() |> 
-  summarise("isced:level" = paste(unique(`isced:level`), collapse = "; "))
+  summarise("isced:level" = paste(unique(`ISCED level`), collapse = "; "),
+            "min_age" = min(min_age),
+            "max_age" = ifelse(length(c(max_age)[is.na(c(max_age))]) > 0, NA_integer_,max(max_age)),
+            "amenity" = paste(unique(`amenity`), collapse = "; "),
+            "school" = paste(unique(school)[!is.na(c(unique(school)))], collapse = "; "))
+
+
+escoles_gene_osm <- escoles_gene_osm |> 
+  select(-c("epri", "einf1c", "einf2c", "eso", "batx", "cfpm", "aa03", "cfps", "pfi", "nom_naturalesa", "adre_a")) |> 
+  left_join(escoles_gene_isced, by = c("ref" = "codi_centre"))
+
+# the resulting escoles_gene_osm can be exported to csv or any other tool to use it to update OSM data.
