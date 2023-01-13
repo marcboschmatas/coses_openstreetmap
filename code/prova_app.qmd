@@ -1,10 +1,10 @@
 ---
-title: "prova app"
+title: "Descàrrega dades escoles"
 format: html
 server: shiny
 ---
 
-## prova taula
+Aquesta aplicació descarrega les dades de les escoles de qualsevol municipi català. Per qualsevol dubte o problema, podeu obrir un issue a https://github.com/marcboschmatas/coses_openstreetmap
 
 
 ```{r}
