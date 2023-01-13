@@ -4,7 +4,7 @@ format: html
 server: shiny
 ---
 
-Aquesta aplicació descarrega les dades de les escoles de qualsevol municipi català. Per qualsevol dubte o problema, podeu obrir un issue a https://github.com/marcboschmatas/coses_openstreetmap
+Aquesta aplicació descarrega les dades de les escoles de qualsevol municipi català. Per qualsevol dubte o problema, podeu obrir un issue a https://github.com/marcboschmatas/coses_openstreetmap. Versió en progrés.
 
 
 ```{r}
@@ -53,13 +53,13 @@ escoles_gene <- GET(paste0(baseurl,query)) |>
 # clean all easy variables
 
 escoles_gene_osm <- escoles_gene |> 
-  select(-c(curs, codi_titularitat, codi_naturalesa, 
-            codi_delegaci, nom_delegaci, codi_comarca,
-            codi_municipi, codi_municipi_6, 
-            codi_localitat, codi_districte_municipal, 
-            nom_comarca, zona_educativa,
-            coordenades_utm_x, coordenades_utm_y,
-            coordenades_geo_x, coordenades_geo_y)) |> # eliminar columnes que no calen
+  select(-any_of(c("curs", "codi_titularitat", "codi_naturalesa", 
+            "codi_delegaci", "nom_delegaci", "codi_comarca",
+            "codi_municipi", "codi_municipi_6", 
+            "codi_localitat", "codi_districte_municipal", 
+            "nom_comarca", "zona_educativa",
+            "coordenades_utm_x", "coordenades_utm_y",
+            "coordenades_geo_x", "coordenades_geo_y"))) |> # eliminar columnes que no calen
   rename("operator" = "nom_titularitat",
          "name" = "denominaci_completa",
          "ref" = "codi_centre",
