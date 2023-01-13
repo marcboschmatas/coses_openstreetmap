@@ -10,7 +10,7 @@ library(rvest)
 # download schools in Palafrugell 
 
 
-escoles <- opq("Palafrugell") |> 
+escoles <- opq("Torroella de Montgrí") |> 
   add_osm_features("[\"amenity\"=\"school\"][\"ref\"]") |> # this is a lot more cumbersome but allows to filter for missing tags
   osmdata_sf()
 
@@ -80,7 +80,7 @@ eqs <- eqs[[1]] |>
 # generate the more difficult columns
 
 escoles_gene_isced <- escoles_gene |> 
-  select("codi_centre", "epri", "einf1c", "einf2c", "eso", "batx", "cfpm", "aa03", "cfps", "pfi") |> 
+  select(any_of(c("codi_centre", eqs$Cycle))) |> 
   pivot_longer(-codi_centre,
                names_to = "level_name",
                values_to = "junk") |> 
@@ -102,7 +102,7 @@ escoles_gene_isced <- escoles_gene |>
                                level_name == "muse" ~ "music_school",
                                level_name == "dane" ~ NA_character_,
                                level_name == "idi" ~ "language_school",
-                               TRUE ~ "school")) |> 
+                               TRUE ~ "school")) |> # falta posar les escoles de dansa
   arrange(`ISCED level`) |> 
   group_by(codi_centre) |> 
   summarise("isced:level" = paste(unique(`ISCED level`), collapse = "; "),
@@ -113,7 +113,7 @@ escoles_gene_isced <- escoles_gene |>
 
 
 escoles_gene_osm <- escoles_gene_osm |> 
-  select(-c("epri", "einf1c", "einf2c", "eso", "batx", "cfpm", "aa03", "cfps", "pfi", "nom_naturalesa", "adre_a")) |> 
+  select(-any_of(c(eqs$Cycle, "nom_naturalesa", "adre_a"))) |> 
   left_join(escoles_gene_isced, by = c("ref" = "codi_centre"))
 
 # the resulting escoles_gene_osm can be exported to csv or any other tool to use it to update OSM data.
