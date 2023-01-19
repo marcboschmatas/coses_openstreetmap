@@ -15,7 +15,7 @@ library(osmdata)
 library(sf)
 library(rvest)
 
-# Define UI for application that draws a histogram
+# Define UI for application that projects a table
 ui <- fluidPage(
 
     # Application title

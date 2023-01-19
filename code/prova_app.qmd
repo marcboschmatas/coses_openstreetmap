@@ -3,7 +3,10 @@ title: "Descàrrega dades escoles"
 format: html
 server: shiny
 ---
-
+ARXIVADA
+ARCHIVED
+JA NO ESTÀ PENJADA
+NO LONGER RUNNING
 Aquesta aplicació descarrega les dades de les escoles de qualsevol municipi o comarca de Catalunya. Atès que filtra per un rectangle al voltant del municipi o comarca, poden sortir centres de municipis o comarques veïnes. Per qualsevol dubte o problema, podeu obrir un issue a https://github.com/marcboschmatas/coses_openstreetmap. Versió en progrés.
 
 
