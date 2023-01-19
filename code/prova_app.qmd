@@ -136,6 +136,7 @@ escoles_gene_osm
 
 ```{r}
 shiny::textInput("location", label = "Municipi/Comarca")
+shiny::downloadButton("downloadData", "Download")
 shiny::tableOutput("data")
 ```
 
@@ -154,5 +155,6 @@ output$DownloadData <- shiny::downloadHandler(
     content = function(file) {
       write.csv(output$data, file, row.names = FALSE)
     }
+)
 ```
 
