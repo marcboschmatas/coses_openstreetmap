@@ -1,0 +1,13 @@
+name: escoles_osm
+title: escoles_osm
+username:
+account: marcbosch
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8077709
+bundleId: 6752568
+url: https://marcbosch.shinyapps.io/escoles_osm/
+when: 1674157070.44686
+lastSyncTime: 1674157070.44696
+asMultiple: FALSE
+asStatic: FALSE
