@@ -4,7 +4,7 @@ format: html
 server: shiny
 ---
 
-Aquesta aplicació descarrega les dades de les escoles de qualsevol municipi català. Per qualsevol dubte o problema, podeu obrir un issue a https://github.com/marcboschmatas/coses_openstreetmap. Versió en progrés.
+Aquesta aplicació descarrega les dades de les escoles de qualsevol municipi o comarca de Catalunya. Atès que filtra per un rectangle al voltant del municipi o comarca, poden sortir centres de municipis o comarques veïnes. Per qualsevol dubte o problema, podeu obrir un issue a https://github.com/marcboschmatas/coses_openstreetmap. Versió en progrés.
 
 
 ```{r}
@@ -135,7 +135,7 @@ escoles_gene_osm
 
 
 ```{r}
-shiny::textInput("location", label = "Municipi")
+shiny::textInput("location", label = "Municipi/Comarca")
 shiny::tableOutput("data")
 ```
 
@@ -147,6 +147,12 @@ shiny::tableOutput("data")
 ```{r}
 #| context: server
 output$data <- shiny::renderTable({get_school_table(location = input$location)})
-
+output$DownloadData <- shiny::downloadHandler(
+    filename = function() {
+      paste(input$location, ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(output$data, file, row.names = FALSE)
+    }
 ```
 
